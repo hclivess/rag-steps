@@ -1,0 +1,4 @@
+# The core has ZERO dependencies (Python 3.10+ standard library only).
+# Optional connectors:
+# anthropic                # RAG_LLM=anthropic
+# sentence-transformers    # RAG_EMBEDDER=st
