@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rag-sqlite · every step, visible</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>rag-sqlite</h1>
+    <p>Retrieval-augmented generation on one SQLite file. Press a start button and watch each step work.</p>
+  </div>
+  <dl class="facts">
+    <div><dt>Embedder</dt><dd id="f-embedder">…</dd></div>
+    <div><dt>LLM</dt><dd id="f-llm">…</dd></div>
+    <div><dt>Database</dt><dd id="f-db">…</dd></div>
+    <div><dt>Documents</dt><dd id="f-docs">0</dd></div>
+    <div><dt>Chunks</dt><dd id="f-chunks">0</dd></div>
+    <div><dt>Playback</dt><dd>
+      <select id="speed" title="The pipeline itself takes milliseconds. Playback slows the display so you can follow it.">
+        <option value="instant">instant</option>
+        <option value="normal" selected>normal</option>
+        <option value="slow">slow</option>
+      </select></dd></div>
+  </dl>
+</header>
+
+<main>
+<!-- ============================ A: build the index ============================ -->
+<section>
+  <div class="sec-head">
+    <h2><span class="tag">A</span> Build the index</h2>
+    <p>Documents are read, cut into chunks, turned into vectors and written to SQLite.</p>
+  </div>
+
+  <form id="ingest-form" class="controls">
+    <label class="grow">Folder with .md / .txt files
+      <input id="folder" type="text" spellcheck="false" autocomplete="off">
+    </label>
+    <label>Chunk size <output id="size-out"></output>
+      <input id="size" type="range" min="100" max="2000" step="20">
+    </label>
+    <label>Overlap <output id="overlap-out"></output>
+      <input id="overlap" type="range" min="0" max="400" step="10">
+    </label>
+    <button class="primary" id="start" type="submit">▶ Start ingest</button>
+    <button id="reset" type="button">Empty database</button>
+  </form>
+
+  <details class="paste">
+    <summary>Add your own text</summary>
+    <div class="paste-body">
+      <input id="paste-name" type="text" placeholder="name, e.g. my-notes" spellcheck="false">
+      <textarea id="paste-text" rows="5" placeholder="Paste any text. Blank lines separate paragraphs."></textarea>
+      <button id="paste-add" type="button">Add to the list</button>
+    </div>
+  </details>
+
+  <div class="progress" aria-live="polite">
+    <div class="track"><div class="bar" id="ingest-bar"></div></div>
+    <span id="ingest-label">Nothing running. The chunk card shows a live preview of the selected document.</span>
+  </div>
+
+  <div class="pipe four">
+    <article class="step" id="s-read">
+      <header><span class="num">1</span><h3>Read</h3><span class="status"></span></header>
+      <p class="what">Each file is loaded as plain text. Nothing clever: the text is the raw material for everything after.</p>
+      <div class="live" id="read-live"></div>
+    </article>
+
+    <article class="step" id="s-chunk">
+      <header><span class="num">2</span><h3>Chunk</h3><span class="status"></span></header>
+      <p class="what">The text is split at blank lines and paragraphs are packed until the chunk size is reached.
+        Each new chunk starts with the tail of the one before (<mark>overlap</mark>), so a sentence on a boundary keeps its context.</p>
+      <div class="live" id="chunk-live"></div>
+    </article>
+
+    <article class="step" id="s-embed">
+      <header><span class="num">3</span><h3>Embed</h3><span class="status"></span></header>
+      <p class="what" id="embed-what">Each chunk becomes a list of numbers (a vector). Texts with similar content get similar vectors. Every tile below is one chunk's vector.</p>
+      <div class="live" id="embed-live">
+        <div id="embed-now" class="now"></div>
+        <div id="embed-tiles" class="tiles"></div>
+      </div>
+    </article>
+
+    <article class="step" id="s-store">
+      <header><span class="num">4</span><h3>Store</h3><span class="status"></span></header>
+      <p class="what">The document, its chunks and their vectors go into SQLite. Vectors are float32 BLOBs; a trigger copies the text into the FTS5 keyword index.</p>
+      <div class="live" id="store-live">
+        <pre class="sql">INSERT INTO documents (source, title, content, metadata) …
+INSERT INTO chunks (document_id, position, text, embedding) …
+-- trigger: INSERT INTO chunks_fts(rowid, text)</pre>
+        <table class="rows"><thead><tr><th>doc id</th><th>source</th><th>chunk rows</th><th>BLOB</th></tr></thead>
+          <tbody id="store-rows"></tbody></table>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ============================ B: ask ============================ -->
+<section>
+  <div class="sec-head">
+    <h2><span class="tag">B</span> Ask a question</h2>
+    <p>The question is embedded the same way, the nearest chunks are found, and they are handed to the LLM as context.</p>
+  </div>
+
+  <form id="ask-form" class="controls">
+    <label class="grow">Question
+      <input id="question" type="text" list="samples" autocomplete="off" value="when is my sourdough starter ready?">
+      <datalist id="samples">
+        <option value="when is my sourdough starter ready?">
+        <option value="what water temperature for coffee">
+        <option value="which plants tolerate low light?">
+        <option value="How much coffee per cup?">
+      </datalist>
+    </label>
+    <label>Chunks to keep (k)
+      <input id="k" type="number" min="1" max="20" value="4">
+    </label>
+    <label>Search mode
+      <select id="mode">
+        <option value="hybrid" selected>hybrid</option>
+        <option value="vector">vector</option>
+        <option value="keyword">keyword</option>
+      </select>
+    </label>
+    <button class="primary" id="ask" type="submit">▶ Ask</button>
+  </form>
+
+  <div class="progress" aria-live="polite">
+    <div class="track"><div class="bar" id="ask-bar"></div></div>
+    <span id="ask-label">Nothing running.</span>
+  </div>
+
+  <div class="pipe three">
+    <article class="step" id="s-embed_query">
+      <header><span class="num">5</span><h3>Embed the question</h3><span class="status"></span></header>
+      <p class="what">The question goes through the same embedder as the chunks, so both live in the same space and can be compared.</p>
+      <div class="live" id="embed_query-live"></div>
+    </article>
+
+    <article class="step" id="s-vector_search">
+      <header><span class="num">6</span><h3>Vector search</h3><span class="status"></span></header>
+      <p class="what">One SQL statement scores every chunk by cosine similarity to the question vector (1 = same direction, 0 = unrelated).</p>
+      <div class="live" id="vector_search-live">
+        <pre class="sql">SELECT …, cosine_similarity(c.embedding, ?) AS score
+FROM chunks c JOIN documents d ON d.id = c.document_id
+ORDER BY score DESC LIMIT ?</pre>
+        <div class="hits"></div>
+      </div>
+    </article>
+
+    <article class="step" id="s-keyword_search">
+      <header><span class="num">7</span><h3>Keyword search</h3><span class="status"></span></header>
+      <p class="what">The question's words are looked up in the FTS5 full-text index and ranked by BM25: rare matching words count for more.</p>
+      <div class="live" id="keyword_search-live">
+        <pre class="sql">SELECT …, -bm25(chunks_fts) AS score
+FROM chunks_fts JOIN chunks c ON c.id = chunks_fts.rowid …
+WHERE chunks_fts MATCH ? ORDER BY score DESC LIMIT ?</pre>
+        <div class="fts"></div>
+        <div class="hits"></div>
+      </div>
+    </article>
+
+    <article class="step" id="s-fusion">
+      <header><span class="num">8</span><h3>Fuse the two rankings</h3><span class="status"></span></header>
+      <p class="what">Cosine and BM25 scores cannot be compared, so only ranks are used: each list gives a chunk 1 / (60 + rank), rank counted from 0. Chunks high in both lists win.</p>
+      <div class="live" id="fusion-live"></div>
+    </article>
+
+    <article class="step" id="s-prompt">
+      <header><span class="num">9</span><h3>Build the prompt</h3><span class="status"></span></header>
+      <p class="what">The kept chunks are numbered and pasted above the question, with an instruction to answer only from them and cite [n].</p>
+      <div class="live" id="prompt-live"></div>
+    </article>
+
+    <article class="step" id="s-answer">
+      <header><span class="num">10</span><h3>Generate</h3><span class="status"></span></header>
+      <p class="what">The LLM reads the prompt and writes the answer. With no LLM configured you see the context it would have been given.</p>
+      <div class="live" id="answer-live"></div>
+    </article>
+  </div>
+</section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

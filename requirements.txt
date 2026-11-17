@@ -1,4 +1,9 @@
-# The core has ZERO dependencies (Python 3.10+ standard library only).
+# The core and the CLI have ZERO dependencies (Python 3.10+ standard library only).
+
+# Web interface (python -m rag serve):
+fastapi
+uvicorn
+
 # Optional connectors:
 # anthropic                # RAG_LLM=anthropic
 # sentence-transformers    # RAG_EMBEDDER=st

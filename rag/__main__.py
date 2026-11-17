@@ -4,6 +4,7 @@
     python -m rag search "some question"      # show retrieved chunks
     python -m rag ask "some question"         # retrieve + generate an answer
     python -m rag stats
+    python -m rag serve                       # web interface on http://127.0.0.1:8765
 """
 from __future__ import annotations
 
@@ -30,9 +31,22 @@ def main() -> None:
         s.add_argument("--mode", choices=["vector", "keyword", "hybrid"], default="hybrid")
 
     sub.add_parser("stats")
+
+    s = sub.add_parser("serve", help="local web interface that shows every step")
+    s.add_argument("--host", default="127.0.0.1")
+    s.add_argument("--port", type=int, default=8765)
+    s.add_argument("--no-open", action="store_true", help="do not open the browser")
     args = p.parse_args()
 
     embedder, llm = from_env()
+    if args.cmd == "serve":
+        try:
+            from .server import serve
+        except ImportError as exc:
+            raise SystemExit(f"the web interface needs FastAPI and uvicorn ({exc}):\n"
+                             "    pip install fastapi uvicorn")
+        serve(args.db, embedder, llm, args.host, args.port, open_browser=not args.no_open)
+        return
     rag = RAG(Database(args.db), embedder, llm)
 
     if args.cmd == "ingest":

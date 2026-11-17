@@ -36,13 +36,16 @@ class HashEmbedder:
         bigrams = [f"{a} {b}" for a, b in zip(words, words[1:])]
         return words + bigrams
 
+    def bucket(self, token: str) -> int:
+        """The vector position a token lands in."""
+        return int(hashlib.md5(token.encode()).hexdigest(), 16) % self.dim
+
     def embed(self, texts: list[str]) -> list[list[float]]:
         out = []
         for text in texts:
             vec = [0.0] * self.dim
             for tok in self._tokens(text):
-                h = int(hashlib.md5(tok.encode()).hexdigest(), 16)
-                vec[h % self.dim] += 1.0
+                vec[self.bucket(tok)] += 1.0
             norm = math.sqrt(sum(v * v for v in vec)) or 1.0
             out.append([v / norm for v in vec])
         return out

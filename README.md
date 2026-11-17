@@ -9,7 +9,11 @@ documents ──► chunk ──► embed ──► SQLite (text + vectors + FTS
 question ──► embed ──► similarity search ─┴──► top-k chunks ──► prompt ──► LLM ──► answer + sources
 ```
 
-* **Zero dependencies** – runs offline out of the box (Python 3.10+, stdlib only).
+[![The web interface after one run: every step of ingest and of a question, with what it produced](thumb.png)](#web-interface-watch-every-step)
+
+* **Zero dependencies** – the core and the CLI run offline out of the box (Python 3.10+, stdlib only).
+* **Web interface** – `python -m rag serve` opens a local page with start buttons, progress and a live
+  picture of every step: reading, chunking, embedding, storing, searching, fusing, prompting, answering.
 * **SQLite is the vector store** – embeddings are `float32` BLOBs; cosine similarity is a Python function
   registered into SQLite, so retrieval is one `SELECT ... ORDER BY cosine_similarity(...) LIMIT k`.
 * **Hybrid search** – vector search + FTS5 keyword search merged with reciprocal-rank fusion.
@@ -24,6 +28,7 @@ python -m rag ingest demo_data                    # chunk + embed + store into r
 python -m rag search "what water temperature for coffee"
 python -m rag ask "when is my sourdough starter ready?"
 python -m rag stats
+python -m rag serve                               # the same, in the browser (needs fastapi + uvicorn)
 ```
 
 With the default connectors, `ask` prints the retrieved context instead of a generated answer —
@@ -45,6 +50,45 @@ export OPENAI_API_KEY=sk-...
 RAG_EMBEDDER=openai python -m rag ingest demo_data
 RAG_EMBEDDER=openai RAG_LLM=openai python -m rag ask "..."
 ```
+
+## Web interface: watch every step
+
+```bash
+pip install fastapi uvicorn        # only the web interface needs these
+python -m rag serve                # starts uvicorn itself and opens http://127.0.0.1:8765
+```
+
+Options: `--port 9000`, `--host 0.0.0.0`, `--no-open`, and `--db other.db` before `serve`.
+The connectors come from the same env vars as the CLI (`RAG_EMBEDDER`, `RAG_LLM`, see below).
+
+**A · Build the index** – pick a folder (or paste your own text), set chunk size and overlap, press **Start ingest**.
+
+| Step | What you see |
+|------|--------------|
+| 1 Read   | each file ticked off with its characters and paragraphs |
+| 2 Chunk  | the chunks of the selected document, the overlap carried over from the previous chunk highlighted; moving the sliders re-chunks it live, before anything is stored |
+| 3 Embed  | one tile per chunk vector (a cell per dimension); with the hash embedder also every token and the bucket it lands in |
+| 4 Store  | the SQL that runs and the rows written: document id, chunk rows, BLOB size, running totals |
+
+**B · Ask a question** – type a question, choose `k` and the search mode, press **Ask**.
+
+| Step | What you see |
+|------|--------------|
+| 5 Embed the question | its tokens and vector |
+| 6 Vector search  | the SQL, the ranked chunks with their cosine score, the question's words highlighted |
+| 7 Keyword search | the FTS5 `MATCH` query and the chunks ranked by BM25 |
+| 8 Fuse           | the reciprocal-rank-fusion table: each chunk's rank in both lists, `1/(60+rank)` summed, the top `k` marked |
+| 9 Build the prompt | the system instruction and the exact prompt |
+| 10 Generate      | the answer (or, with no LLM configured, the context a model would get) |
+
+The pipeline takes milliseconds, so the **Playback** switch (instant / normal / slow) only slows the display;
+the times shown are the real ones. `http://127.0.0.1:8765/?autorun` runs both halves once on load.
+
+How it is built: `rag/steps.py` runs the same functions as the CLI but yields a small dict after every step;
+`rag/server.py` (FastAPI) streams those as newline-delimited JSON; `rag/webui/` is three static files of plain
+JavaScript, HTML and CSS — no build step, no framework. The API is browsable at `/api/docs`.
+
+## Configuration
 
 | Env var           | Values                                   | Default |
 |-------------------|------------------------------------------|---------|
@@ -90,7 +134,10 @@ rag/
 ├── chunking.py            split text into overlapping chunks
 ├── db.py                  SQLite schema, vector BLOBs, cosine_similarity(), FTS5 keyword search
 ├── pipeline.py            RAG class: add_document / retrieve / ask, reciprocal-rank fusion
-├── __main__.py            CLI (ingest / search / ask / stats)
+├── __main__.py            CLI (ingest / search / ask / stats / serve)
+├── steps.py               the pipelines one step at a time, each step described (feeds the web interface)
+├── server.py              FastAPI app + uvicorn launcher for the web interface
+├── webui/                 index.html, app.js, style.css – plain JavaScript, no build step
 └── connectors/
     ├── base.py            Embedder + LLM protocols
     ├── local.py           HashEmbedder (offline), ExtractiveLLM (prints context)
