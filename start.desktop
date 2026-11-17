@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Start rag-sqlite
+Comment=Start the web interface and open it in the browser
+Exec=sh -c 'cd "$(dirname "$1")" && exec sh ./start.sh' sh %k
+Terminal=true
+Icon=utilities-terminal

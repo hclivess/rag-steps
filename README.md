@@ -20,6 +20,22 @@ question ──► embed ──► similarity search ─┴──► top-k chunk
 * **Generic connectors** – swap embedders/LLMs with an env var: offline hash embedder,
   OpenAI-compatible APIs (OpenAI, Ollama, LM Studio, vLLM…), sentence-transformers, Anthropic Claude.
 
+## Start it without a console
+
+1. Get the folder: **[Download ZIP](../../archive/refs/heads/main.zip)** and unpack it (or `git clone`).
+2. Double-click the starter:
+
+| System | File | Notes |
+| --- | --- | --- |
+| Windows | `start.bat` | If Windows shows "Windows protected your PC": More info → Run anyway. |
+| Linux | `start.desktop` or `start.sh` | Right-click → "Allow launching" / "Run as a program" (the wording depends on the desktop). |
+
+The first start installs FastAPI and uvicorn into a `.venv` folder next to the starter (needs internet).
+After that it starts at once and opens <http://127.0.0.1:8765/> in your browser. Close the window to stop it.
+
+The only thing that must already be on the computer is [Python 3.10 or newer](https://www.python.org/downloads/)
+(on Windows tick "Add python.exe to PATH" in the installer; on Debian/Ubuntu also `python3-venv`).
+
 ## Quick start (no API key needed)
 
 ```bash
