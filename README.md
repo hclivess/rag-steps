@@ -9,7 +9,13 @@ documents ──► chunk ──► embed ──► SQLite (text + vectors + FTS
 question ──► embed ──► similarity search ─┴──► top-k chunks ──► prompt ──► LLM ──► answer + sources
 ```
 
+![The web interface running: the index is built step by step, then a question is answered](demo.webp)
+
+<details><summary>The whole page after one run (still picture)</summary>
+
 [![The web interface after one run: every step of ingest and of a question, with what it produced](thumb.png)](#web-interface-watch-every-step)
+
+</details>
 
 * **Zero dependencies** – the core and the CLI run offline out of the box (Python 3.10+, stdlib only).
 * **Web interface** – `python -m rag serve` opens a local page with start buttons, progress and a live
