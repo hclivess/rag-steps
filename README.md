@@ -1,4 +1,4 @@
-# rag-sqlite
+# rag-steps
 
 A **minimal, dependency-free RAG (Retrieval-Augmented Generation) system** in a few hundred lines of heavily commented Python,
 using **SQLite for both the documents and the vectors**. Built to teach the concept, not to hide it.
@@ -45,7 +45,7 @@ The only thing that must already be on the computer is [Python 3.10 or newer](ht
 ## Quick start (no API key needed)
 
 ```bash
-git clone <this repo> && cd rag-sqlite
+git clone <this repo> && cd rag-steps
 python -m rag ingest demo_data                    # chunk + embed + store into rag.db
 python -m rag search "what water temperature for coffee"
 python -m rag ask "when is my sourdough starter ready?"
