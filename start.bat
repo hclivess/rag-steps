@@ -4,7 +4,7 @@ rem .venv folder next to it), starts the web interface and opens it in the brows
 rem Close this window to stop it.
 setlocal
 cd /d "%~dp0"
-title rag-sqlite
+title rag-steps
 set "PY="
 python -c "import sys" >nul 2>nul && set "PY=python"
 if not defined PY py -3 -c "import sys" >nul 2>nul && set "PY=py -3"

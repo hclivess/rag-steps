@@ -1,4 +1,4 @@
-// rag-sqlite web interface. Plain JavaScript, no build step, no libraries.
+// rag-steps web interface. Plain JavaScript, no build step, no libraries.
 // The server (rag/server.py) does the work and sends one JSON line per
 // finished step; this file only draws what arrives.
 'use strict';

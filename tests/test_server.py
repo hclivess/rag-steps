@@ -71,7 +71,7 @@ class ServerTests(unittest.TestCase):
 
     def test_page_is_served(self):
         with urllib.request.urlopen(self.base + "/") as res:
-            self.assertIn("rag-sqlite", res.read().decode())
+            self.assertIn("rag-steps",res.read().decode())
         with urllib.request.urlopen(self.base + "/app.js") as res:
             self.assertIn("/api/ingest", res.read().decode())
 

@@ -1,4 +1,4 @@
-"""Using rag-sqlite as a library (no CLI)."""
+"""Using rag-steps as a library (no CLI)."""
 from rag import RAG, Database
 from rag.connectors import from_env
 

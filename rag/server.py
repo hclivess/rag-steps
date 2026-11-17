@@ -61,7 +61,7 @@ def _ndjson(db_path: str, make_events) -> StreamingResponse:
 
 
 def create_app(db_path: str, embedder: Embedder, llm: LLM) -> FastAPI:
-    app = FastAPI(title="rag-sqlite", docs_url="/api/docs", redoc_url=None)
+    app = FastAPI(title="rag-steps", docs_url="/api/docs", redoc_url=None)
 
     @app.exception_handler(ValueError)
     @app.exception_handler(KeyError)
@@ -143,7 +143,7 @@ def serve(db_path: str, embedder: Embedder, llm: LLM, host: str = "127.0.0.1", p
           open_browser: bool = True) -> None:
     """Start uvicorn in this process and (optionally) open the page."""
     url = f"http://{host}:{port}/"
-    print(f"rag-sqlite web interface: {url}   (Ctrl+C to stop)")
+    print(f"rag-steps web interface: {url}   (Ctrl+C to stop)")
     if open_browser:
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
     uvicorn.run(create_app(db_path, embedder, llm), host=host, port=port, log_level="warning",
